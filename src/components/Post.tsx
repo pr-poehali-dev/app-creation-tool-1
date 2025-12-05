@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card';
@@ -23,11 +23,32 @@ interface PostProps {
 }
 
 export default function Post({ id, author, authorAvatar, content, timestamp, initialLikes = 0 }: PostProps) {
-  const [likes, setLikes] = useState(initialLikes);
-  const [isLiked, setIsLiked] = useState(false);
-  const [comments, setComments] = useState<Comment[]>([]);
+  const [likes, setLikes] = useState(() => {
+    const saved = localStorage.getItem(`tunzok_post_${id}_likes`);
+    return saved ? parseInt(saved) : initialLikes;
+  });
+  const [isLiked, setIsLiked] = useState(() => {
+    const saved = localStorage.getItem(`tunzok_post_${id}_liked`);
+    return saved === 'true';
+  });
+  const [comments, setComments] = useState<Comment[]>(() => {
+    const saved = localStorage.getItem(`tunzok_post_${id}_comments`);
+    return saved ? JSON.parse(saved) : [];
+  });
   const [commentText, setCommentText] = useState('');
   const [showComments, setShowComments] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem(`tunzok_post_${id}_likes`, likes.toString());
+  }, [likes, id]);
+
+  useEffect(() => {
+    localStorage.setItem(`tunzok_post_${id}_liked`, isLiked.toString());
+  }, [isLiked, id]);
+
+  useEffect(() => {
+    localStorage.setItem(`tunzok_post_${id}_comments`, JSON.stringify(comments));
+  }, [comments, id]);
 
   const handleLike = () => {
     if (isLiked) {
