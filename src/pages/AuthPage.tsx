@@ -1,12 +1,85 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
 import Icon from '@/components/ui/icon';
 
 export default function AuthPage() {
   const [isLogin, setIsLogin] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!email || !password) {
+      toast({
+        title: 'Ошибка',
+        description: 'Заполните все поля',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    if (isLogin) {
+      const users = JSON.parse(localStorage.getItem('tunzok_users') || '[]');
+      const user = users.find((u: { email: string; password: string }) => 
+        u.email === email && u.password === password
+      );
+
+      if (user) {
+        localStorage.setItem('tunzok_current_user', JSON.stringify(user));
+        toast({
+          title: 'Успешный вход',
+          description: 'Добро пожаловать!',
+        });
+        navigate('/home');
+      } else {
+        toast({
+          title: 'Ошибка',
+          description: 'Неверный email или пароль',
+          variant: 'destructive',
+        });
+      }
+    } else {
+      if (password !== confirmPassword) {
+        toast({
+          title: 'Ошибка',
+          description: 'Пароли не совпадают',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const users = JSON.parse(localStorage.getItem('tunzok_users') || '[]');
+      
+      if (users.find((u: { email: string }) => u.email === email)) {
+        toast({
+          title: 'Ошибка',
+          description: 'Пользователь с таким email уже существует',
+          variant: 'destructive',
+        });
+        return;
+      }
+
+      const newUser = { email, password };
+      users.push(newUser);
+      localStorage.setItem('tunzok_users', JSON.stringify(users));
+      localStorage.setItem('tunzok_current_user', JSON.stringify(newUser));
+
+      toast({
+        title: 'Регистрация успешна',
+        description: 'Добро пожаловать!',
+      });
+      navigate('/home');
+    }
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#0a0a0f] via-[#1a1a2e] to-[#0a0a0f] p-4">
@@ -29,17 +102,7 @@ export default function AuthPage() {
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="bg-accent/10 border border-accent/30 rounded-lg p-6 text-center space-y-3">
-            <div className="flex justify-center">
-              <Icon name="Construction" size={48} className="text-accent animate-float" />
-            </div>
-            <h3 className="text-xl font-bold text-accent">Сайт в разработке</h3>
-            <p className="text-muted-foreground text-sm">
-              Мы работаем над созданием чего-то удивительного. Скоро здесь появится полноценная социальная сеть!
-            </p>
-          </div>
-
-          <div className="space-y-3 opacity-50 pointer-events-none">
+          <form onSubmit={handleSubmit} className="space-y-3">
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -47,6 +110,8 @@ export default function AuthPage() {
                 type="email"
                 placeholder="example@email.com"
                 className="bg-input border-border"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
 
@@ -57,6 +122,8 @@ export default function AuthPage() {
                 type="password"
                 placeholder="••••••••"
                 className="bg-input border-border"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
               />
             </div>
 
@@ -68,17 +135,20 @@ export default function AuthPage() {
                   type="password"
                   placeholder="••••••••"
                   className="bg-input border-border"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
                 />
               </div>
             )}
 
-            <Button className="w-full neon-glow" size="lg">
+            <Button type="submit" className="w-full neon-glow" size="lg">
               {isLogin ? 'Войти' : 'Зарегистрироваться'}
             </Button>
-          </div>
+          </form>
 
-          <div className="text-center text-sm opacity-50">
+          <div className="text-center text-sm">
             <button
+              type="button"
               onClick={() => setIsLogin(!isLogin)}
               className="text-primary hover:underline"
             >
